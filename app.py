@@ -155,7 +155,53 @@ def display_employees():
         if employee['out_time']:
             employee['out_time'] = datetime.fromisoformat(employee['out_time'])
     return render_template('employees.html', employees=employees)
-    
+
+@app.route('/downloadTimeSheet')
+def download_excel():
+    try:
+        # Connect to the database
+        conn = sqlite3.connect('employees.db')
+        # Fetch data
+        df = pd.read_sql_query("SELECT name, status, in_time, out_time FROM employees", conn)
+        # Close the connection
+        conn.close()
+        
+        # Convert datetime columns to datetime objects and remove timezone information
+        df['in_time'] = pd.to_datetime(df['in_time'], errors='coerce').dt.tz_localize(None)
+        df['out_time'] = pd.to_datetime(df['out_time'], errors='coerce').dt.tz_localize(None)
+        
+        # Create a byte stream
+        output = BytesIO()
+        
+        # Use pandas to write DataFrame to Excel
+        with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+            df.to_excel(writer, index=False, sheet_name='Employees')
+            
+            # Get the xlsxwriter workbook and worksheet objects
+            workbook = writer.book
+            worksheet = writer.sheets['Employees']
+            
+            # Define date format
+            date_format = workbook.add_format({'num_format': 'yyyy-mm-dd hh:mm:ss'})
+            
+            # Apply date format to the datetime columns
+            worksheet.set_column('C:C', None, date_format)  # in_time
+            worksheet.set_column('D:D', None, date_format)  # out_time
+        
+        # Move the file pointer to the beginning
+        output.seek(0)
+        
+        # Return the stream as a response
+        return Response(
+            output.read(),
+            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            headers={'Content-Disposition': 'attachment;filename=employees.xlsx'}
+        )
+    except Exception as e:
+        # Handle exceptions
+        print(f"An error occurred: {e}")
+        return "An error occurred while processing your request."
+
 
 if __name__ == '__main__':
     app.run(debug=True)
