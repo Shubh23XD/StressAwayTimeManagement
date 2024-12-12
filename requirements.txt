@@ -3,4 +3,6 @@ Jinja2
 itsdangerous
 Werkzeug
 click
+pandas
+xlsxwriter
 gunicorn
