@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<title>Employee Clock</title>
+		<style>
+			table {
+				width: 50%;
+				border-collapse: collapse;
+			}
+			table,
+			th,
+			td {
+				border: 1px solid black;
+			}
+			th,
+			td {
+				padding: 10px;
+				text-align: left;
+			}
+			.status {
+				font-weight: bold;
+			}
+			.online {
+				color: green;
+			}
+			.offline {
+				color: red;
+			}
+			/* Modern, clean, and responsive styling */
+			body {
+				font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+					Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+				max-width: 800px;
+				margin: 0 auto;
+				padding: 20px;
+				line-height: 1.6;
+				background-color: #f4f4f4;
+			}
+
+			h1 {
+				color: #333;
+				text-align: center;
+				border-bottom: 2px solid #007bff;
+				padding-bottom: 10px;
+			}
+
+			form {
+				background-color: white;
+				padding: 20px;
+				border-radius: 8px;
+				box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+				margin-bottom: 20px;
+			}
+
+			form label {
+				display: block;
+				margin-bottom: 15px;
+			}
+
+			input[type="text"] {
+				width: 100%;
+				padding: 10px;
+				margin-top: 5px;
+				border: 1px solid #ddd;
+				border-radius: 4px;
+				box-sizing: border-box;
+			}
+
+			input[type="submit"] {
+				background-color: #007bff;
+				color: white;
+				border: none;
+				padding: 10px 20px;
+				margin-right: 10px;
+				border-radius: 4px;
+				cursor: pointer;
+				transition: background-color 0.3s ease;
+			}
+
+			input[type="submit"]:hover {
+				background-color: #0056b3;
+			}
+
+			table {
+				width: 100%;
+				border-collapse: collapse;
+				background-color: white;
+				box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+				border-radius: 8px;
+				overflow: hidden;
+			}
+
+			th,
+			td {
+				border: 1px solid #ddd;
+				padding: 12px;
+				text-align: left;
+			}
+
+			th {
+				background-color: #f8f9fa;
+				color: #333;
+				font-weight: bold;
+			}
+
+			.status {
+				font-weight: bold;
+				padding: 5px 10px;
+				border-radius: 4px;
+			}
+
+			.online {
+				color: white;
+				background-color: #28a745;
+			}
+
+			.offline {
+				color: white;
+				background-color: #dc3545;
+			}
+
+			/* Message styling */
+			ul {
+				background-color: #f8d7da;
+				color: #721c24;
+				padding: 15px;
+				border-radius: 4px;
+				list-style-type: none;
+				margin-bottom: 20px;
+			}
+
+			/* Responsive design */
+			@media screen and (max-width: 600px) {
+				body {
+					padding: 10px;
+				}
+
+				form,
+				table {
+					width: 100%;
+				}
+
+				input[type="submit"] {
+					display: block;
+					width: 100%;
+					margin-bottom: 10px;
+				}
+			}
+			body {
+				font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+					Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+				max-width: 1000px;
+				margin: 0 auto;
+				padding: 20px;
+				background-color: #f4f4f7;
+				line-height: 1.6;
+			}
+
+			h1,
+			h2 {
+				color: #333;
+				text-align: center;
+			}
+
+			h1 {
+				border-bottom: 2px solid #007bff;
+				padding-bottom: 10px;
+			}
+
+			table {
+				width: 100%;
+				border-collapse: collapse;
+				background-color: white;
+				box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+				border-radius: 8px;
+				overflow: hidden;
+			}
+
+			thead {
+				background-color: #f8f9fa;
+			}
+
+			th,
+			td {
+				border: 1px solid #e0e0e0;
+				padding: 12px;
+				text-align: left;
+				transition: background-color 0.2s ease;
+			}
+
+			th {
+				font-weight: 600;
+				color: #495057;
+			}
+
+			tr:nth-child(even) {
+				background-color: #f2f2f2;
+			}
+
+			tr:hover {
+				background-color: #e9ecef;
+			}
+
+			.status {
+				font-weight: bold;
+				text-transform: capitalize;
+				text-align: center;
+				padding: 6px 12px;
+				border-radius: 4px;
+				font-size: 0.9em;
+			}
+
+			.online {
+				background-color: #28a745;
+				color: white;
+			}
+
+			.offline {
+				background-color: #dc3545;
+				color: white;
+			}
+
+			@media screen and (max-width: 600px) {
+				body {
+					padding: 10px;
+				}
+
+				table {
+					font-size: 0.9em;
+				}
+
+				th,
+				td {
+					padding: 8px;
+				}
+			}
+		</style>
+	</head>
+	<body>
+    <h1>Employee Clock</h1>
+    <form action="/clock" method="post">
+        <label>Enter your name: 
+            <input type="text" name="name" required 
+                   value="{{ session['name'] if 'name' in session else '' }}" 
+                   {% if 'name' in session %}readonly{% endif %} />
+        </label><br />
+        <input type="submit" name="action" value="Clock In" />
+        <input type="submit" name="action" value="Clock Out" />
+    </form>
+    {% with messages = get_flashed_messages() %}
+    {% if messages %}
+    <ul>
+        {% for message in messages %}
+        <li>{{ message }}</li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+    {% endwith %}
+    <h2>Employee Status</h2>
+    <table id="status-table">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Status</th>
+                <th>Last Action Time</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for employee in employees %}
+            <tr>
+                <td>{{ employee['name'] }}</td>
+                <td class="status {% if employee['status'] == 'clocked_in' %}online{% else %}offline{% endif %}">
+                    {{ employee['status'] }}
+                </td>
+                <td>
+                    {% if employee['status'] == 'clocked_in' %}
+                    {{ employee['in_time'].strftime('%Y-%m-%d %H:%M:%S') }}
+                    {% else %}
+                    {% if employee['out_time'] %}
+                    {{ employee['out_time'].strftime('%Y-%m-%d %H:%M:%S') }}
+                    {% else %} N/A
+                    {% endif %}
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <script>
+        // Refresh the status table every 5 seconds
+        setInterval(function () {
+            location.reload();
+        }, 5000);
+    </script>
+</body>
+</html>
