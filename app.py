@@ -148,7 +148,14 @@ def display_employees():
     cursor.execute('SELECT * FROM employees')
     employees = cursor.fetchall()
     conn.close()
+    employees = [dict(row) for row in employees]
+    for employee in employees:
+        if employee['in_time']:
+            employee['in_time'] = datetime.fromisoformat(employee['in_time'])
+        if employee['out_time']:
+            employee['out_time'] = datetime.fromisoformat(employee['out_time'])
     return render_template('employees.html', employees=employees)
+    
 
 if __name__ == '__main__':
     app.run(debug=True)

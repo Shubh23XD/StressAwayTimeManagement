@@ -96,29 +96,34 @@
 	</head>
 	<body>
 		<h1>Employee List</h1>
-		<table>
-			<thead>
-				<tr>
-					<th>Name</th>
-					<th>Status</th>
-					<th>In Time</th>
-					<th>Out Time</th>
-					<th>Last Clock In Time</th>
-					<th>Last Clock Out Time</th>
-				</tr>
-			</thead>
-			<tbody>
-				{% for employee in employees %}
-				<tr>
-					<td>{{ employee['name'] }}</td>
-					<td>{{ employee['status'] }}</td>
-					<td>{{ employee['in_time'] }}</td>
-					<td>{{ employee['out_time'] }}</td>
-					<td>{{ employee['last_clock_in_time'] }}</td>
-					<td>{{ employee['last_clock_out_time'] }}</td>
-				</tr>
-				{% endfor %}
-			</tbody>
-		</table>
+		<table id="status-table">
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Status</th>
+            <th>Last Action Time</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for employee in employees %}
+        <tr>
+            <td>{{ employee['name'] }}</td>
+            <td class="status {% if employee['status'] == 'clocked_in' %}online{% else %}offline{% endif %}">
+                {{ employee['status'] }}
+            </td>
+            <td>
+                {% if employee['status'] == 'clocked_in' %}
+                {{ employee['in_time'].strftime('%Y-%m-%d %H:%M:%S') }}
+                {% else %}
+                {% if employee['out_time'] %}
+                {{ employee['out_time'].strftime('%Y-%m-%d %H:%M:%S') }}
+                {% else %} N/A
+                {% endif %}
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
 	</body>
 </html>

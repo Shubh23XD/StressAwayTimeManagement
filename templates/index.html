@@ -2,7 +2,7 @@
 <html lang="en">
 	<head>
 		<meta charset="UTF-8" />
-		<title>Employee Clock</title>
+		<title>Team Clock</title>
 		<style>
 			table {
 				width: 50%;
@@ -237,8 +237,8 @@
 			}
 		</style>
 	</head>
-	<body>
-    <h1>Employee Clock</h1>
+	<body>.
+    <h1>Team Clock</h1>
     <form action="/clock" method="post">
         <label>Enter your name: 
             <input type="text" name="name" required 
@@ -257,41 +257,49 @@
     </ul>
     {% endif %}
     {% endwith %}
-    <h2>Employee Status</h2>
-    <table id="status-table">
-        <thead>
-            <tr>
-                <th>Name</th>
-                <th>Status</th>
-                <th>Last Action Time</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for employee in employees %}
-            <tr>
-                <td>{{ employee['name'] }}</td>
-                <td class="status {% if employee['status'] == 'clocked_in' %}online{% else %}offline{% endif %}">
-                    {{ employee['status'] }}
-                </td>
-                <td>
-                    {% if employee['status'] == 'clocked_in' %}
-                    {{ employee['in_time'].strftime('%Y-%m-%d %H:%M:%S') }}
-                    {% else %}
-                    {% if employee['out_time'] %}
-                    {{ employee['out_time'].strftime('%Y-%m-%d %H:%M:%S') }}
-                    {% else %} N/A
-                    {% endif %}
-                    {% endif %}
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    <div id="status-table-container">
+        <table id="status-table">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Status</th>
+                    <th>Last Action Time</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for Team in Teams %}
+                <tr>
+                    <td>{{ Team['name'] }}</td>
+                    <td class="status {% if Team['status'] == 'clocked_in' %}online{% else %}offline{% endif %}">
+                        {{ Team['status'] }}
+                    </td>
+                    <td>
+                        {% if Team['status'] == 'clocked_in' %}
+                        {{ Team['in_time'].strftime('%Y-%m-%d %H:%M:%S') }}
+                        {% else %}
+                        {% if Team['out_time'] %}
+                        {{ Team['out_time'].strftime('%Y-%m-%d %H:%M:%S') }}
+                        {% else %} N/A
+                        {% endif %}
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
     <script>
+        // Function to fetch updated data and update the table
+        function updateTable() {
+            fetch('/employees')  // Fetch the updated data from the server
+                .then(response => response.text())
+                .then(data => {
+                    document.getElementById('status-table-container').innerHTML = data;
+                });
+        }
+
         // Refresh the status table every 5 seconds
-        setInterval(function () {
-            location.reload();
-        }, 5000);
+        setInterval(updateTable, 2000);
     </script>
 </body>
 </html>
