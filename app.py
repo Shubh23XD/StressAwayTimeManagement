@@ -261,53 +261,93 @@ def display_employees():
 @app.route('/downloadTimeSheet')
 def download_excel():
     try:
+        # Connect to the database
         conn = get_db_connection()
-        df = pd.read_sql_query("SELECT name, status, in_time, out_time FROM employees", conn)
-        conn.close()
         
-        # Convert datetime columns
-        df['in_time'] = pd.to_datetime(df['in_time'], errors='coerce')
-        df['out_time'] = pd.to_datetime(df['out_time'], errors='coerce')
+        # Fetch data with error handling
+        try:
+            df = pd.read_sql_query("""
+                SELECT 
+                    name,
+                    status,
+                    in_time,
+                    out_time,
+                    last_clock_in_time,
+                    last_clock_out_time
+                FROM employees
+            """, conn)
+        except Exception as e:
+            logging.error(f"SQL query failed: {str(e)}")
+            raise
+        finally:
+            conn.close()
+
+        # Debug information
+        logging.info(f"Retrieved {len(df)} rows of data")
+        logging.info(f"Columns: {df.columns.tolist()}")
         
-        # Calculate duration if both in_time and out_time exist
-        df['duration'] = None
-        mask = df['in_time'].notna() & df['out_time'].notna()
-        df.loc[mask, 'duration'] = (df.loc[mask, 'out_time'] - df.loc[mask, 'in_time']).astype(str)
-        
+        # Handle timezone conversion safely
+        for col in ['in_time', 'out_time', 'last_clock_in_time', 'last_clock_out_time']:
+            if col in df.columns:
+                df[col] = pd.to_datetime(df[col], errors='coerce')
+                
+        # Create BytesIO object for Excel file
         output = BytesIO()
         
-        with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-            df.to_excel(writer, index=False, sheet_name='Employees')
+        # Write to Excel with additional error handling
+        try:
+            with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+                df.to_excel(writer, index=False, sheet_name='Employee Records')
+                
+                # Get workbook and worksheet objects
+                workbook = writer.book
+                worksheet = writer.sheets['Employee Records']
+                
+                # Add formats
+                date_format = workbook.add_format({'num_format': 'yyyy-mm-dd hh:mm:ss'})
+                header_format = workbook.add_format({
+                    'bold': True,
+                    'text_wrap': True,
+                    'valign': 'top',
+                    'fg_color': '#D7E4BC',
+                    'border': 1
+                })
+                
+                # Set column widths and formats
+                worksheet.set_column('A:A', 20)  # Name column
+                worksheet.set_column('B:B', 15)  # Status column
+                worksheet.set_column('C:F', 20, date_format)  # DateTime columns
+                
+                # Write headers with format
+                for col_num, value in enumerate(df.columns.values):
+                    worksheet.write(0, col_num, value, header_format)
+                    
+        except Exception as e:
+            logging.error(f"Excel writing failed: {str(e)}")
+            raise
             
-            workbook = writer.book
-            worksheet = writer.sheets['Employees']
-            
-            # Format datetime columns
-            date_format = workbook.add_format({'num_format': 'yyyy-mm-dd hh:mm:ss'})
-            worksheet.set_column('C:D', None, date_format)  # in_time and out_time
-            
-            # Format headers
-            header_format = workbook.add_format({
-                'bold': True,
-                'text_wrap': True,
-                'valign': 'top',
-                'border': 1
-            })
-            for col_num, value in enumerate(df.columns.values):
-                worksheet.write(0, col_num, value, header_format)
-        
+        # Seek to beginning of file
         output.seek(0)
         
+        # Create timestamp for filename
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        
+        # Return the Excel file
         return Response(
-            output.read(),
+            output,
             mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            headers={'Content-Disposition': 'attachment;filename=employees.xlsx'}
+            headers={
+                'Content-Disposition': f'attachment;filename=employee_timesheet_{timestamp}.xlsx',
+                'Cache-Control': 'no-cache, no-store, must-revalidate',
+                'Pragma': 'no-cache',
+                'Expires': '0'
+            }
         )
+        
     except Exception as e:
-        logging.error(f"Error in download_excel route: {str(e)}")
-        flash('An error occurred while generating the Excel file.')
+        logging.error(f"Excel download failed: {str(e)}")
+        flash(f'Error downloading Excel file: {str(e)}')
         return redirect(url_for('index'))
-
 if __name__ == '__main__':
     init_db()  # Initialize database at startup
     if not os.path.exists(BACKUP_DIR):
