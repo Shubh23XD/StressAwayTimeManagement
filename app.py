@@ -262,92 +262,49 @@ def display_employees():
 def download_excel():
     try:
         # Connect to the database
-        conn = get_db_connection()
+        conn = sqlite3.connect('employees.db')
+        # Fetch data
+        df = pd.read_sql_query("SELECT name, status, in_time, out_time FROM employees", conn)
+        # Close the connection
+        conn.close()
         
-        # Fetch data with error handling
-        try:
-            df = pd.read_sql_query("""
-                SELECT 
-                    name,
-                    status,
-                    in_time,
-                    out_time,
-                    last_clock_in_time,
-                    last_clock_out_time
-                FROM employees
-            """, conn)
-        except Exception as e:
-            logging.error(f"SQL query failed: {str(e)}")
-            raise
-        finally:
-            conn.close()
-
-        # Debug information
-        logging.info(f"Retrieved {len(df)} rows of data")
-        logging.info(f"Columns: {df.columns.tolist()}")
+        # Convert datetime columns to datetime objects and remove timezone information
+        df['in_time'] = pd.to_datetime(df['in_time'], errors='coerce').dt.tz_localize(None)
+        df['out_time'] = pd.to_datetime(df['out_time'], errors='coerce').dt.tz_localize(None)
         
-        # Handle timezone conversion safely
-        for col in ['in_time', 'out_time', 'last_clock_in_time', 'last_clock_out_time']:
-            if col in df.columns:
-                df[col] = pd.to_datetime(df[col], errors='coerce')
-                
-        # Create BytesIO object for Excel file
+        # Create a byte stream
         output = BytesIO()
         
-        # Write to Excel with additional error handling
-        try:
-            with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-                df.to_excel(writer, index=False, sheet_name='Employee Records')
-                
-                # Get workbook and worksheet objects
-                workbook = writer.book
-                worksheet = writer.sheets['Employee Records']
-                
-                # Add formats
-                date_format = workbook.add_format({'num_format': 'yyyy-mm-dd hh:mm:ss'})
-                header_format = workbook.add_format({
-                    'bold': True,
-                    'text_wrap': True,
-                    'valign': 'top',
-                    'fg_color': '#D7E4BC',
-                    'border': 1
-                })
-                
-                # Set column widths and formats
-                worksheet.set_column('A:A', 20)  # Name column
-                worksheet.set_column('B:B', 15)  # Status column
-                worksheet.set_column('C:F', 20, date_format)  # DateTime columns
-                
-                # Write headers with format
-                for col_num, value in enumerate(df.columns.values):
-                    worksheet.write(0, col_num, value, header_format)
-                    
-        except Exception as e:
-            logging.error(f"Excel writing failed: {str(e)}")
-            raise
+        # Use pandas to write DataFrame to Excel
+        with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+            df.to_excel(writer, index=False, sheet_name='Employees')
             
-        # Seek to beginning of file
+            # Get the xlsxwriter workbook and worksheet objects
+            workbook = writer.book
+            worksheet = writer.sheets['Employees']
+            
+            # Define date format
+            date_format = workbook.add_format({'num_format': 'yyyy-mm-dd hh:mm:ss'})
+            
+            # Apply date format to the datetime columns
+            worksheet.set_column('C:C', None, date_format)  # in_time
+            worksheet.set_column('D:D', None, date_format)  # out_time
+        
+        # Move the file pointer to the beginning
         output.seek(0)
         
-        # Create timestamp for filename
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        
-        # Return the Excel file
+        # Return the stream as a response
         return Response(
-            output,
+            output.read(),
             mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            headers={
-                'Content-Disposition': f'attachment;filename=employee_timesheet_{timestamp}.xlsx',
-                'Cache-Control': 'no-cache, no-store, must-revalidate',
-                'Pragma': 'no-cache',
-                'Expires': '0'
-            }
+            headers={'Content-Disposition': 'attachment;filename=employees.xlsx'}
         )
-        
     except Exception as e:
-        logging.error(f"Excel download failed: {str(e)}")
-        flash(f'Error downloading Excel file: {str(e)}')
-        return redirect(url_for('index'))
+        # Handle exceptions
+        print(f"An error occurred: {e}")
+        return "An error occurred while processing your request."
+
+
 if __name__ == '__main__':
     init_db()  # Initialize database at startup
     if not os.path.exists(BACKUP_DIR):
