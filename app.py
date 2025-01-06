@@ -8,6 +8,9 @@ import os
 import logging
 import threading
 from shutil import copyfile
+from apscheduler.schedulers.background import BackgroundScheduler
+import requests
+
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -31,6 +34,15 @@ logging.basicConfig(
 
 # Create database lock
 db_lock = threading.Lock()
+def ping_server():
+    url = "https://stressawaytimemanagement.onrender.com"
+    try:
+        response = requests.get(url)
+        print(f"Pinged {url}, status code: {response.status_code}")
+    except requests.exceptions.RequestException as e:
+        print(f"Failed to ping {url}: {e}")
+
+
 
 # Database initialization
 def init_db():
@@ -69,6 +81,11 @@ def backup_database():
         logging.info(f"Database backed up successfully: {backup_file}")
     except Exception as e:
         logging.error(f"Backup failed: {str(e)}")
+
+scheduler = BackgroundScheduler()
+scheduler.add_job(func=ping_server, trigger="interval", minutes=1)
+scheduler.add_job(func=backup_database, trigger="interval", hours=1)
+scheduler.start()
 
 def validate_employee_data(name, action, ist_now):
     conn = get_db_connection()
