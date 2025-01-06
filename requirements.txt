@@ -5,4 +5,5 @@ Werkzeug
 click
 pandas
 xlsxwriter
+apscheduler
 gunicorn
